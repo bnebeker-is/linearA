@@ -12,17 +12,6 @@ from calendar import monthrange
 import datetime
 from pandas.tseries.offsets import MonthEnd
 
-#### CONFIGS ###########################################################
-########################################################################
-DATA_PATH="/home/jason/code/python/marketing_mix_model/data" \
-          "/daily/training_data.csv.gz"
-
-SAVE_PATH="/home/jason/code/python/marketing_mix_model" \
-          "/final_model_assets/"
-
-DATE_FEATURE=["date_dt"]
-
-
 
 ########################################################################
 ##      LOAD THE DATA
@@ -56,7 +45,7 @@ df['eom'] = pd.to_datetime(df['ds']).dt.days_in_month
 
 df.loc[:, 'eom_flag'] = np.where(df.eom - df.day <= 2, 1, 0)
 
-FEATURES=[
+FEATURES = [
     "weekend_flag",
     "eom_flag"
 ]
@@ -199,30 +188,106 @@ print("Best order for SARIMAX: {0}".format(str(best_order)))
 print("RMSE: {0}".format(best_rmse))
 
 
-
-
 # best model params
-#AR=
-#I=
-#MA=
-# s=
+AR = 4
+I = 1
+MA = 5
+# s =
+
+train_df = df[df.ds <= '2017-10-01']
+test_df = df[(df.ds > '2017-10-01') & (df.ds <= '2017-10-11')]
 
 sarimax = sm.tsa.statespace.SARIMAX(
-    df.loc[:, 'y'].astype(np.float64),
-    exog=df.loc[:, FEATURES],
-    order=(AR,I,MA),
+    train_df.loc[:, 'y'].astype(np.float64),
+    exog=train_df.loc[:, FEATURES],
+    order=(AR, I, MA),
     # seasonal_order=(P,D,Q,s),
     simple_differencing=False,
-enforce_stationarity=False,
-enforce_invertibility=False)
+    enforce_stationarity=False,
+    enforce_invertibility=False
+)
 
 fitted_sarimax = sarimax.fit(
     maxiter=1000,
     cov_type="robust",
 )
 
-# doesn't work as of v0.8; you'd have to add the commit that contains
-# the code to allow this as it wasn't included in the 0.8 release
-# despite being merged prior; has to do with some upgrades the Cython
-# see: https://github.com/statsmodels/statsmodels/issues/3892
-# fitted_sarimax.save(SAVE_PATH + "fitted_sarimax.ml")
+# print the results
+print(fitted_sarimax.summary())
+
+# preds = fitted_sarimax.get_forecast(
+#     steps=10,
+#     exog=test_df.loc[:, FEATURES]
+# )
+# oos_model = sm.tsa.SARIMAX(
+#     test_df.loc[:, 'y'],
+#     exog=test_df.loc[:, FEATURES],
+#     order=(AR, I, MA),
+#     # seasonal_order=(P,D,Q,s),
+#     simple_differencing=False
+# )
+
+# oos_results = oos_model.filter(fitted_sarimax.params)
+# # make in-sample predictions
+#
+# preds = oos_results.predict()
+# preds = np.round(preds, decimals=0)
+
+preds = fitted_sarimax.forecast(
+    test_df.shape[0],
+    exog=test_df.loc[:, FEATURES]
+)
+
+preds = pd.DataFrame(preds)
+preds.columns = ['pred']
+test_df = pd.DataFrame(test_df)
+
+oos_df = pd.concat(
+    [
+        test_df.reset_index(drop=False),
+        preds.reset_index(drop=False)
+    ],
+    axis=1
+)
+
+new_names = oos_df.columns.values
+new_names[10] = "pred"
+oos_df.columns = new_names
+
+# mean square error
+mse = mean_squared_error(
+    y_true=oos_df.loc[:, "y"],
+    y_pred=oos_df.loc[:, "pred"]
+)
+# root mean square error
+rmse = np.sqrt(mse)
+
+# mean absolute error
+mae = mean_absolute_error(
+    y_true=oos_df.loc[:, "y"],
+    y_pred=oos_df.loc[:, "pred"]
+)
+
+mdae = median_absolute_error(
+    y_true=oos_df.loc[:, "y"],
+    y_pred=oos_df.loc[:, "pred"]
+)
+
+exp_var = explained_variance_score(
+    y_true=oos_df.loc[:, "y"],
+    y_pred=oos_df.loc[:, "pred"]
+)
+
+print("RMSE: {0}".format(rmse))
+print("MSE: {0}".format(mse))
+print("MAE: {0}".format(mae))
+print("MED. AE: {0}".format(mdae))
+print("EXP VAR: {0}".format(exp_var))
+
+# MSE: 22.419598529469116
+# MSE: 502.6383982225737
+# MAE: 19.648158607975105
+# MED. AE: 21.156291948027423
+# EXP VAR: 0.7955351209114689
+
+
