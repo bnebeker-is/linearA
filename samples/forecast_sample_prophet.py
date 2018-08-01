@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 # os.chdir("C:/Users/brett.nebeker/Documents/Personal Docs/Joel")
 
-# df = pd.read_csv("./dropbox/SmallDeptList_small_for_agg.csv")
+# df = pd.read_csv("C:/Users/brett.nebeker/Documents/Personal Docs/Joel/dropbox/SmallDeptList_small_for_agg.csv")
 df = pd.read_csv("/home/brett/Downloads/SmallDeptList.csv")
 
 df.head()
@@ -27,11 +27,11 @@ df.columns = ['ds', 'y']
 plt.plot(df.ds, df.y)
 
 df.ds.describe()
-df_train = df[df.ds < '2017-01-01']
-df_test = df[df.ds >= '2017-01-01']
+train_df = df[df.ds <= '2017-10-01']
+test_df = df[(df.ds > '2017-10-01') & (df.ds <= '2017-10-11')]
 
 m = Prophet()
-m.fit(df_train)
+m.fit(train_df)
 
 future = m.make_future_dataframe(periods=365)
 forecast = m.predict(future)
@@ -59,7 +59,7 @@ print(MAPE)
 # mean square error
 mse = mean_squared_error(
     y_true=oos_df.loc[:, "y"],
-    y_pred=oos_df.loc[:, "pred"]
+    y_pred=oos_df.loc[:, "yhat"]
 )
 # root mean square error
 rmse = np.sqrt(mse)
@@ -67,17 +67,17 @@ rmse = np.sqrt(mse)
 # mean absolute error
 mae = mean_absolute_error(
     y_true=oos_df.loc[:, "y"],
-    y_pred=oos_df.loc[:, "pred"]
+    y_pred=oos_df.loc[:, "yhat"]
 )
 
 mdae = median_absolute_error(
     y_true=oos_df.loc[:, "y"],
-    y_pred=oos_df.loc[:, "pred"]
+    y_pred=oos_df.loc[:, "yhat"]
 )
 
 exp_var = explained_variance_score(
     y_true=oos_df.loc[:, "y"],
-    y_pred=oos_df.loc[:, "pred"]
+    y_pred=oos_df.loc[:, "yhat"]
 )
 
 print("RMSE: {0}".format(rmse))
@@ -86,3 +86,8 @@ print("MAE: {0}".format(mae))
 print("MED. AE: {0}".format(mdae))
 print("EXP VAR: {0}".format(exp_var))
 
+# RMSE: 31.712468493564696
+# MSE: 1005.6806579553335
+# MAE: 23.33173729451341
+# MED. AE: 18.648329232994314
+# EXP VAR: 0.5161827631099696
