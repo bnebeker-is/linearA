@@ -11,6 +11,7 @@ import datetime as dt
 from calendar import monthrange
 import datetime
 from pandas.tseries.offsets import MonthEnd
+import holidays
 
 
 ########################################################################
@@ -45,9 +46,16 @@ df['eom'] = pd.to_datetime(df['ds']).dt.days_in_month
 
 df.loc[:, 'eom_flag'] = np.where(df.eom - df.day <= 2, 1, 0)
 
+us_holidays = holidays.UnitedStates()
+
+df.loc[:, 'holiday_flag'] = np.where(
+    df.ds.isin(us_holidays), 1, 0
+)
+
 FEATURES = [
     "weekend_flag",
-    "eom_flag"
+    "eom_flag",
+    "holiday_flag"
 ]
 ########################################################################
 ##      FIND BEST PARAMETERS
@@ -107,7 +115,7 @@ for permutation in SARIMAX_permutations:
     sarimax = sm.tsa.SARIMAX(
         df.loc[train_idx, 'y'].astype(np.float64),
         exog=df.loc[train_idx, FEATURES],
-        order=(AR,I,MA),
+        order=(AR, I, MA),
         # seasonal_order=(P,D,Q,s),
         simple_differencing=False)
 
@@ -188,11 +196,17 @@ print("Best order for SARIMAX: {0}".format(str(best_order)))
 print("RMSE: {0}".format(best_rmse))
 
 
-# best model params
+# best model params -- no holiday
 AR = 4
 I = 1
 MA = 5
 # s =
+
+# best model params -- with holiday
+#AR = 4
+#I = 1
+#MA = 5
+
 
 train_df = df[df.ds <= '2017-10-01']
 test_df = df[(df.ds > '2017-10-01') & (df.ds <= '2017-10-11')]
@@ -251,7 +265,7 @@ oos_df = pd.concat(
 )
 
 new_names = oos_df.columns.values
-new_names[10] = "pred"
+new_names[11] = "pred"
 oos_df.columns = new_names
 
 # mean square error
