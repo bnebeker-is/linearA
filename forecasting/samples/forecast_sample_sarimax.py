@@ -11,7 +11,7 @@ import datetime as dt
 from calendar import monthrange
 import datetime
 from pandas.tseries.offsets import MonthEnd
-import holidays
+from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
 
 ########################################################################
@@ -46,10 +46,11 @@ df['eom'] = pd.to_datetime(df['ds']).dt.days_in_month
 
 df.loc[:, 'eom_flag'] = np.where(df.eom - df.day <= 2, 1, 0)
 
-us_holidays = holidays.UnitedStates()
+cal = calendar()
+holidays = cal.holidays(start=df.ds.min(), end=df.ds.max())
 
 df.loc[:, 'holiday_flag'] = np.where(
-    df.ds.isin(us_holidays), 1, 0
+    df.ds.isin(holidays), 1, 0
 )
 
 FEATURES = [
