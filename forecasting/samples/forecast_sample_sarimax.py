@@ -17,7 +17,8 @@ from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 ########################################################################
 ##      LOAD THE DATA
 ########################################################################
-df = pd.read_csv("/home/brett/Downloads/SmallDeptList.csv")
+# df = pd.read_csv("/home/brett/Downloads/SmallDeptList.csv")
+df = pd.read_csv("C:/Users/brett.nebeker/Documents/Personal Docs/Joel/dropbox/SmallDeptList_small_for_agg.csv")
 print(df.shape)
 
 ## isolate single dept
@@ -198,9 +199,9 @@ print("RMSE: {0}".format(best_rmse))
 
 
 # best model params -- no holiday
-AR = 4
+AR = 5
 I = 1
-MA = 5
+MA = 3
 # s =
 
 # best model params -- with holiday
@@ -209,8 +210,8 @@ MA = 5
 #MA = 5
 
 
-train_df = df[df.ds <= '2017-10-01']
-test_df = df[(df.ds > '2017-10-01') & (df.ds <= '2017-10-11')]
+train_df = df[df.ds < '2017-12-01']
+test_df = df[(df.ds >= '2017-12-01')] # & (df.ds <= '2017-11-30')]
 
 sarimax = sm.tsa.statespace.SARIMAX(
     train_df.loc[:, 'y'].astype(np.float64),
@@ -299,10 +300,32 @@ print("MAE: {0}".format(mae))
 print("MED. AE: {0}".format(mdae))
 print("EXP VAR: {0}".format(exp_var))
 
-# MSE: 22.419598529469116
-# MSE: 502.6383982225737
-# MAE: 19.648158607975105
-# MED. AE: 21.156291948027423
-# EXP VAR: 0.7955351209114689
+## error: oct - dec (89 days)
+# RMSE: 28.863730826362325
+# MSE: 833.1149572166988
+# MAE: 22.15021095040592
+# MED. AE: 17.474771570498064
+# EXP VAR: 0.801354038446783
+
+## error: oct only
+# RMSE: 22.751678731134835
+# MSE: 517.6388850847732
+# MAE: 18.809584541449055
+# MED. AE: 17.436906574039114
+# EXP VAR: 0.8578460479184726
+
+## train oct, nov only error
+# RMSE: 30.708039697043414
+# MSE: 942.9837020351941
+# MAE: 20.17191917060198
+# MED. AE: 15.043645583640298
+# EXP VAR: 0.8027272554118826
+
+## train nov, dec only error
+# RMSE: 31.081427946482673
+# MSE: 966.055163192394
+# MAE: 23.9029224502019
+# MED. AE: 18.869620206121738
+# EXP VAR: 0.7715756842277243
 
 
