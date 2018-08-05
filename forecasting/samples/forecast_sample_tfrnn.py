@@ -125,6 +125,8 @@ model.compile(loss='mae', optimizer='adam')
 epochs_list = [100,250,500,750,1000,2000,4000]
 batch_list = [25,50,75,100,150,200]
 mdl_stats = pd.DataFrame(columns=[
+    'epochs',
+    'batch_size',
     'rmse',
     'mse',
     'mae',
@@ -248,6 +250,8 @@ for ep in epochs_list:
         print("EXP VAR DIFF {0}".format(exp_var_t - exp_var))
 
         tmp = pd.DataFrame(columns=[
+            'epochs',
+            'batch_size',
             'rmse',
             'mse',
             'mae',
@@ -265,7 +269,7 @@ for ep in epochs_list:
             'exp_var_diff'
         ])
 
-        tmp.loc[0] = [rmse, mse, mae, mdae, exp_var,
+        tmp.loc[0] = [ep, batch, rmse, mse, mae, mdae, exp_var,
                       rmse_t, mse_t, mae_t, mdae_t, exp_var_t,
                       rmse_diff, mse_diff, mae_diff, mdae_diff, exp_var_diff
         ]
@@ -273,6 +277,10 @@ for ep in epochs_list:
         mdl_stats = mdl_stats.append(tmp, ignore_index=True)
 
 mdl_stats.to_csv("/home/brett/Documents/la/rnn_v1_stats.csv")
+
+mdl_stats.shape
+mdl_stats
+
 
 ## CURRENT BEST
 #model = Sequential()
@@ -287,6 +295,7 @@ mdl_stats.to_csv("/home/brett/Documents/la/rnn_v1_stats.csv")
 # MAE: 31.125658281352543
 # MED. AE: 26.314239501953125
 # EXP VAR: 0.6927468755096203
+
 ## same model params, but scaled vars:
 # RMSE: 30.856951389106086
 # MSE: 952.1514490296561
