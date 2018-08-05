@@ -2,7 +2,6 @@ import collections
 import itertools
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, \
     explained_variance_score, mean_absolute_error, median_absolute_error
@@ -18,10 +17,13 @@ from tensorflow.contrib import learn
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
+from sklearn.preprocessing import MinMaxScaler
+
 import sys
 import json
 # import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
+
 
 ########################################################################
 ##      LOAD THE DATA
@@ -82,8 +84,12 @@ df = df[df.ds > '2015-01-12']
 x = df.iloc[:, np.r_[2,7:19]]
 y = df.loc[:, 'y']
 
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled = scaler.fit_transform(x)
+scaled = pd.DataFrame(scaled)
+
 x_train, x_test, y_train, y_test = train_test_split(
-    x,
+    scaled,
     y,
     train_size=.90,
     test_size=.10,
@@ -176,6 +182,14 @@ print("EXP VAR: {0}".format(exp_var))
 # MAE: 31.125658281352543
 # MED. AE: 26.314239501953125
 # EXP VAR: 0.6927468755096203
+
+## same model params, but scaled vars:
+# RMSE: 30.856951389106086
+# MSE: 952.1514490296561
+# MAE: 20.86439907988277
+# MED. AE: 14.081108093261719
+# EXP VAR: 0.7867010455378427
+
 
 
 
