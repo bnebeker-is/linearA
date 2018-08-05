@@ -107,7 +107,9 @@ x_test = x_test.reshape((x_test.shape[0], 1, x_test.shape[1]))
 print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
 
 model = Sequential()
+
 model.add(LSTM(128, input_shape=(x_train.shape[1], x_train.shape[2])))
+# model.add(LSTM(1, batch_input_shape=(2, x_train.shape[1], x_train.shape[2]), stateful=True))
 # model.add(Dense(1, activation='sigmoid'))
 model.add(Dense(1))
 model.compile(loss='mae', optimizer='adam')
@@ -119,70 +121,172 @@ model.compile(loss='mae', optimizer='adam')
 # )
 
 # fit network
-model.fit(
-    x_train,
-    y_train,
-    epochs=100,
-    batch_size=72,
-    validation_data=(x_test, y_test),
-    verbose=2,
-    shuffle=False
-)
 
-# make a prediction
-yhat = model.predict(x_test)
-x_test = x_test.reshape((x_test.shape[0], x_test.shape[2]))
-yhat = pd.DataFrame(yhat)
-y_test = pd.DataFrame(y_test)
-y_test = pd.concat([y_test.reset_index(drop=True), yhat], axis=1)
-y_test.columns = ['y', 'pred']
-y_test.pred = np.where(y_test.pred < 0, 0, y_test.pred)
+epochs_list = [100,250,500,750,1000,2000,4000]
+batch_list = [25,50,75,100,150,200]
+mdl_stats = pd.DataFrame(columns=[
+    'rmse',
+    'mse',
+    'mae',
+    'mdae',
+    'exp_var',
+    'rmse_train',
+    'mse_train',
+    'mae_train',
+    'mdae_train',
+    'exp_var_train',
+    'rmse_diff',
+    'mse_diff',
+    'mae_diff',
+    'mdae_diff',
+    'exp_var_diff'
+])
 
-# mean square error
-mse = mean_squared_error(
-    y_true=y_test.loc[:, "y"],
-    y_pred=y_test.loc[:, "pred"]
-)
-# root mean square error
-rmse = np.sqrt(mse)
+for ep in epochs_list:
+    for batch in batch_list:
 
-# mean absolute error
-mae = mean_absolute_error(
-    y_true=y_test.loc[:, "y"],
-    y_pred=y_test.loc[:, "pred"]
-)
+        model.fit(
+            x_train,
+            y_train,
+            epochs=ep,
+            batch_size=batch,
+            validation_data=(x_test, y_test),
+            verbose=2,
+            shuffle=False
+        )
 
-mdae = median_absolute_error(
-    y_true=y_test.loc[:, "y"],
-    y_pred=y_test.loc[:, "pred"]
-)
+        # make a prediction
+        yhat = model.predict(x_test)
+        x_test_rs = x_test.reshape((x_test.shape[0], x_test.shape[2]))
+        yhat = pd.DataFrame(yhat)
+        y_test_rs = pd.DataFrame(y_test)
+        y_test_rs = pd.concat([y_test_rs.reset_index(drop=True), yhat], axis=1)
+        y_test_rs.columns = ['y', 'pred']
+        y_test_rs.pred = np.where(y_test_rs.pred < 0, 0, y_test_rs.pred)
 
-exp_var = explained_variance_score(
-    y_true=y_test.loc[:, "y"],
-    y_pred=y_test.loc[:, "pred"]
-)
+        # train pred
+        yhat_train = model.predict(x_train)
+        x_train_rs = x_train.reshape((x_train.shape[0], x_train.shape[2]))
+        yhat_train = pd.DataFrame(yhat_train)
+        y_train_rs = pd.DataFrame(y_train)
+        y_train_rs = pd.concat([y_train_rs.reset_index(drop=True), yhat_train], axis=1)
+        y_train_rs.columns = ['y', 'pred']
+        y_train_rs.pred = np.where(y_train_rs.pred < 0, 0, y_train_rs.pred)
 
-print("RMSE: {0}".format(rmse))
-print("MSE: {0}".format(mse))
-print("MAE: {0}".format(mae))
-print("MED. AE: {0}".format(mdae))
-print("EXP VAR: {0}".format(exp_var))
+        # mean square error
+        mse = mean_squared_error(
+            y_true=y_test_rs.loc[:, "y"],
+            y_pred=y_test_rs.loc[:, "pred"]
+        )
+        # root mean square error
+        rmse = np.sqrt(mse)
+
+        # mean absolute error
+        mae = mean_absolute_error(
+            y_true=y_test_rs.loc[:, "y"],
+            y_pred=y_test_rs.loc[:, "pred"]
+        )
+
+        mdae = median_absolute_error(
+            y_true=y_test_rs.loc[:, "y"],
+            y_pred=y_test_rs.loc[:, "pred"]
+        )
+
+        exp_var = explained_variance_score(
+            y_true=y_test_rs.loc[:, "y"],
+            y_pred=y_test_rs.loc[:, "pred"]
+        )
+
+        print("RMSE: {0}".format(rmse))
+        print("MSE: {0}".format(mse))
+        print("MAE: {0}".format(mae))
+        print("MED. AE: {0}".format(mdae))
+        print("EXP VAR: {0}".format(exp_var))
 
 
+        # mean square error
+        mse_t = mean_squared_error(
+            y_true=y_train_rs.loc[:, "y"],
+            y_pred=y_train_rs.loc[:, "pred"]
+        )
+        # root mean square error
+        rmse_t = np.sqrt(mse_t)
 
+        # mean absolute error
+        mae_t = mean_absolute_error(
+            y_true=y_train_rs.loc[:, "y"],
+            y_pred=y_train_rs.loc[:, "pred"]
+        )
+
+        mdae_t = median_absolute_error(
+            y_true=y_train_rs.loc[:, "y"],
+            y_pred=y_train_rs.loc[:, "pred"]
+        )
+
+        exp_var_t = explained_variance_score(
+            y_true=y_train_rs.loc[:, "y"],
+            y_pred=y_train_rs.loc[:, "pred"]
+        )
+
+        ## calc differences
+        rmse_diff = rmse_t - rmse
+        mse_diff = mse_t - mse
+        mae_diff = mae_t - mae
+        mdae_diff = mdae_t - mdae
+        exp_var_diff = exp_var_t - exp_var
+
+        ## print results
+        print("")
+        print("TRAIN SET RESULTS:")
+        print("RMSE: {0}".format(rmse_t))
+        print("MSE: {0}".format(mse_t))
+        print("MAE: {0}".format(mae_t))
+        print("MED. AE: {0}".format(mdae_t))
+        print("EXP VAR: {0}".format(exp_var_t))
+        print("")
+        print("RMSE DIFF {0}".format(rmse_t - rmse))
+        print("EXP VAR DIFF {0}".format(exp_var_t - exp_var))
+
+        tmp = pd.DataFrame(columns=[
+            'rmse',
+            'mse',
+            'mae',
+            'mdae',
+            'exp_var',
+            'rmse_train',
+            'mse_train',
+            'mae_train',
+            'mdae_train',
+            'exp_var_train',
+            'rmse_diff',
+            'mse_diff',
+            'mae_diff',
+            'mdae_diff',
+            'exp_var_diff'
+        ])
+
+        tmp.loc[0] = [rmse, mse, mae, mdae, exp_var,
+                      rmse_t, mse_t, mae_t, mdae_t, exp_var_t,
+                      rmse_diff, mse_diff, mae_diff, mdae_diff, exp_var_diff
+        ]
+
+        mdl_stats = mdl_stats.append(tmp, ignore_index=True)
+
+mdl_stats.to_csv("/home/brett/Documents/la/rnn_v1_stats.csv")
 
 ## CURRENT BEST
 #model = Sequential()
 #model.add(LSTM(128, input_shape=(x_train.shape[1], x_train.shape[2])))
 #model.add(Dense(1))
 #model.compile(loss='mae', optimizer='adam')
+#epochs = 100
+#batch_size = 72
 
 # RMSE: 42.36566305871971
 # MSE: 1794.849406404968
 # MAE: 31.125658281352543
 # MED. AE: 26.314239501953125
 # EXP VAR: 0.6927468755096203
-
 ## same model params, but scaled vars:
 # RMSE: 30.856951389106086
 # MSE: 952.1514490296561
@@ -190,14 +294,21 @@ print("EXP VAR: {0}".format(exp_var))
 # MED. AE: 14.081108093261719
 # EXP VAR: 0.7867010455378427
 
+## train metrics
+# RMSE: 39.204546529317746
+# MSE: 1536.9964685694401
+# MAE: 24.542627220469903
+# MED. AE: 14.00238037109375
+# EXP VAR: 0.7806064902104524
+
 
 
 
 # plot history
-pyplot.plot(model.history['loss'], label='train')
-pyplot.plot(model.history['val_loss'], label='test')
-pyplot.legend()
-pyplot.show()
+# pyplot.plot(model.history['loss'], label='train')
+# pyplot.plot(model.history['val_loss'], label='test')
+# pyplot.legend()
+# pyplot.show()
 
 
 
