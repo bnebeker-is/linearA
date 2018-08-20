@@ -75,13 +75,15 @@ FEATURES = [
 ml = discovery.build('ml', 'v1')
 projectID = 'projects/{}'.format('infusionsft-looker-poc')
 
-for i in range(1,11):
+for i in range(1,365):
     i_str = str(i)
     df.loc[:, str('y_l' + i_str)] = df.y.shift(i).fillna(0)
 
-df = df[df.ds > '2015-01-12']
+# df = df[df.ds > '2015-01-12']
+df = df[df.ds > '2015-12-12']
 
-x = df.iloc[:, np.r_[2,7:19]]
+# x = df.iloc[:, np.r_[2,7:19]]
+x = df.iloc[:, np.r_[2, 7:373]]
 y = df.loc[:, 'y']
 
 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -276,7 +278,8 @@ for ep in epochs_list:
 
         mdl_stats = mdl_stats.append(tmp, ignore_index=True)
 
-mdl_stats.to_csv("/home/brett/Documents/la/rnn_v1_stats.csv")
+# mdl_stats.to_csv("/home/brett/Documents/la/rnn_v1_stats.csv")
+mdl_stats.to_csv("/home/brett/Documents/la/rnn_v2_stats.csv")
 
 mdl_stats.shape
 mdl_stats
